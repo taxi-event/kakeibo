@@ -1,352 +1,144 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>シンプル家計簿（集計付き）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-      background-color: #f2f2f2;
-      height: 100%;
-    }
-
-    header {
-      background-color: #4caf50;
-      color: white;
-      text-align: center;
-      padding: 10px;
-      font-size: 1.2em;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-      padding: 10px;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
-    }
-
-    label {
-      font-size: 0.9em;
-      font-weight: bold;
-    }
-
-    input, select, button {
-      font-size: 1em;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background-color: #4caf50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    .list, .summary {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 10px;
-      margin-top: 15px;
-    }
-
-    .entry {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eee;
-      padding: 6px 0;
-    }
-
-    .entry:last-child {
-      border-bottom: none;
-    }
-
-    .entry-info {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.9em;
-    }
-
-    .entry-store {
-      font-weight: bold;
-    }
-
-    .delete-btn {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      cursor: pointer;
-      font-size: 0.8em;
-    }
-
-    .delete-btn:hover {
-      background: #c0392b;
-    }
-
-    .summary h3 {
-      font-size: 1em;
-      margin-top: 0;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 4px;
-    }
-
-    .summary-list {
-      font-size: 0.9em;
-      line-height: 1.6;
-    }
-
-    .summary-list span {
-      float: right;
-      font-weight: bold;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>📊 シンプル家計簿（Google Drive版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  html, body { margin: 0; padding: 0; font-family: sans-serif; background-color: #f2f2f2; }
+  header { background: #4caf50; color: white; text-align: center; padding: 10px; font-size: 1.2em; position: sticky; top: 0; }
+  .container { max-width: 480px; margin: 0 auto; padding: 10px; }
+  form { display: flex; flex-direction: column; gap: 10px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+  label { font-size: 0.9em; font-weight: bold; }
+  input, select, button { font-size: 1em; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+  button { background: #4caf50; color: white; border: none; cursor: pointer; }
+  button:hover { background: #45a049; }
+  .list, .summary { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 10px; margin-top: 15px; }
+  .entry { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; }
+  .entry:last-child { border-bottom: none; }
+  .entry-store { font-weight: bold; }
+  .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
+</style>
 </head>
 <body>
-  <header>📊 シンプル家計簿</header>
-  <div class="container">
-    <!-- 入力フォーム -->
-    <form id="expense-form">
-      <div>
-        <label for="datetime">日付と時間</label>
-        <input type="datetime-local" id="datetime" required>
-      </div>
+<header>📊 シンプル家計簿（Drive自動保存）</header>
+<div class="container">
+  <form id="expense-form">
+    <label>日付と時間</label>
+    <input type="datetime-local" id="datetime" required>
 
-      <div>
-        <label for="store">お店</label>
- <select id="store" required>
-  <optgroup label="コンビニ">
-    <option value="セブンイレブン">セブンイレブン</option>
-    <option value="ファミリーマート">ファミリーマート</option>
-    <option value="ローソン">ローソン</option>
-    <option value="マイバスケット">マイバスケット</option>
-    <option value="ドンキホーテ">ドンキホーテ</option>
-    <option value="ミニストップ">ミニストップ</option>
-  </optgroup>
-  <optgroup label="スーパー">
-    <option value="東急ストア">東急ストア</option>
-    <option value="マルエツ">マルエツ</option>
-    <option value="西友">西友</option>
-    <option value="ダイエー">ダイエー</option>
-  </optgroup>
-  <optgroup label="ドラッグストア">
-    <option value="HAC">HAC</option>
-    <option value="ウエルシア">ウエルシア</option>
-  </optgroup>
-  <optgroup label="百均">
-    <option value="ダイソー">ダイソー</option>
-    <option value="セリア">セリア</option>
-  </optgroup></select>
-      
-            
-        
-      </div>
+    <label>お店</label>
+    <select id="store" required>
+      <optgroup label="コンビニ">
+        <option>セブンイレブン</option><option>ファミリーマート</option><option>ローソン</option><option>まいばすけっと</option><option>ミニストップ</option><option>ヤマザキ</option><option>その他CS</option>
+      </optgroup>
+       <optgroup label="スーパー">
+        <option>東急ストア</option><option>マルエツ</option><option>西友</option><option>ドンキホーテ</option><option>ダイエー</option><option>三和</option><option>その他SP</option>
+      </optgroup>
+      <optgroup label="ドラッグストア">
+        <option>HAC</option><option>ウェルシア</option><option>マツモトキヨシ</option><option>ココカラファイン</option><option>ツルハ</option><option>その他DS</option>
+      </optgroup>
+      <optgroup label="百均">
+        <option>ダイソー</option><option>Seria</option><option>Can★Do</option><option>その他百均</option>
+      </optgroup>
+    </select>
 
-      <div>
-        <label for="amount">金額（円）</label>
-        <input type="number" id="amount" inputmode="decimal" required placeholder="例: 1250">
-      </div>
+    <label>金額（円）</label>
+    <input type="number" id="amount" required placeholder="例: 1250">
 
-      <button type="submit">追加する</button>
-    </form>
+    <button type="submit">追加する</button>
+  </form>
 
-    <!-- 一覧 -->
-    <div class="list" id="expense-list"></div>
-
-    <!-- 集計 -->
-    <div class="summary" id="summary">
-      <h3>📅 月別集計</h3>
-      <div id="monthly-summary" class="summary-list"></div>
-      <h3>📆 年別集計</h3>
-      <div id="yearly-summary" class="summary-list"></div>
-    </div>
+  <div class="list" id="expense-list"></div>
+  <div class="summary" id="summary">
+    <h3>📅 月別集計</h3><div id="monthly-summary"></div>
+    <h3>📆 年別集計</h3><div id="yearly-summary"></div>
   </div>
+</div>
 
-  <script>
-    // 店舗リスト（JS管理）
-    const storeList = {
-      "コンビニ": [
-        "セブンイレブン",
-        "ファミリーマート",
-        "ローソン",
-        "マイバスケット",
-        "ドンキホーテ",
-        "ミニストップ"
-      ],
-      "スーパー": [
-        "東急ストア",
-        "マルエツ",
-        "西友",
-        "ダイエー"
-        "三和"
-       ],
-      "ドラッグストア": [
-        "HAC"
-        "ウェルシア"
-        "マツモトキヨシ"     ],
-      "百均": [
-        "ダイソー"
-        "セリア"
-      ]
-    };
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwiZTcPmbRczRoXNkr4besGda-BGxsfDURPaDEjhbGirJ_FL1nMaJJlfu1OjqAVv-n3/exec";
 
-    const storeSelect = document.getElementById('store');
-    function populateStoreSelect() {
-      storeSelect.innerHTML = '';
-      for (const category in storeList) {
-        const group = document.createElement('optgroup');
-        group.label = category;
-        storeList[category].forEach(storeName => {
-          const option = document.createElement('option');
-          option.value = storeName;
-          option.textContent = storeName;
-          group.appendChild(option);
-        });
-        storeSelect.appendChild(group);
-      }
-    }
-    populateStoreSelect();
+let expenses = [];
 
-    const form = document.getElementById('expense-form');
-    const list = document.getElementById('expense-list');
-    const monthlySummaryDiv = document.getElementById('monthly-summary');
-    const yearlySummaryDiv = document.getElementById('yearly-summary');
+// ✅ Driveからロード
+async function loadData() {
+  const res = await fetch(API_URL);
+  if (res.ok) expenses = await res.json();
+  render();
+}
 
-    const storageKey = 'simple-kakeibo-data';
-    let expenses = JSON.parse(localStorage.getItem(storageKey)) || [];
-    renderList();
-    renderSummary();
+// ✅ Driveへ自動保存
+async function saveData() {
+  await fetch(API_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(expenses)
+  });
+}
 
-    // フォーム送信
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const datetime = document.getElementById('datetime').value;
-      const store = document.getElementById('store').value;
-      const amount = document.getElementById('amount').value;
+document.getElementById("expense-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const datetime = datetimeInput.value;
+  const store = storeSelect.value;
+  const amount = parseFloat(amountInput.value);
+  if (!datetime || !store || !amount) return;
 
-      if (!datetime || !store || !amount) return;
+  expenses.push({ datetime, store, amount });
+  saveData();
+  render();
+  e.target.reset();
+});
 
-      const entry = {
-        id: Date.now(),
-        datetime,
-        store,
-        amount: parseFloat(amount)
-      };
+function render() {
+  const list = document.getElementById("expense-list");
+  const monthSum = document.getElementById("monthly-summary");
+  const yearSum = document.getElementById("yearly-summary");
+  list.innerHTML = "";
+  monthSum.innerHTML = "";
+  yearSum.innerHTML = "";
 
-      expenses.push(entry);
-      localStorage.setItem(storageKey, JSON.stringify(expenses));
-      form.reset();
-      renderList();
-      renderSummary();
+  if (expenses.length === 0) {
+    list.innerHTML = "<p style='text-align:center;color:#666'>データなし</p>";
+    return;
+  }
+
+  // 一覧
+  expenses.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))
+    .forEach((e,i)=>{
+      const div=document.createElement("div");
+      div.className="entry";
+      div.innerHTML=`<div><b>${e.store}</b><br>${e.datetime}<br>¥${e.amount.toLocaleString()}</div>
+                     <button class="delete-btn" onclick="del(${i})">削除</button>`;
+      list.appendChild(div);
     });
 
-    // 一覧表示
-    function renderList() {
-      list.innerHTML = '';
-      if (expenses.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#666;">まだ記録がありません</p>';
-        return;
-      }
+  // 集計
+  const m={}; const y={};
+  for (const e of expenses){
+    const d=new Date(e.datetime);
+    const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    m[ym]=(m[ym]||0)+e.amount;
+    y[d.getFullYear()]=(y[d.getFullYear()]||0)+e.amount;
+  }
 
-      expenses
-        .sort((a, b) => new Date(b.datetime) - new Date(a.datetime))
-        .forEach(entry => {
-          const div = document.createElement('div');
-          div.className = 'entry';
-          div.innerHTML = `
-            <div class="entry-info">
-              <span class="entry-store">${entry.store}</span>
-              <span>${formatDate(entry.datetime)}</span>
-              <span>¥${entry.amount.toLocaleString()}</span>
-            </div>
-            <button class="delete-btn" data-id="${entry.id}">削除</button>
-          `;
-          list.appendChild(div);
-        });
+  Object.keys(m).sort().reverse().forEach(k=>monthSum.innerHTML+=`${k}<span>¥${m[k].toLocaleString()}</span><br>`);
+  Object.keys(y).sort().reverse().forEach(k=>yearSum.innerHTML+=`${k}<span>¥${y[k].toLocaleString()}</span><br>`);
+}
 
-      document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = parseInt(btn.getAttribute('data-id'));
-          expenses = expenses.filter(e => e.id !== id);
-          localStorage.setItem(storageKey, JSON.stringify(expenses));
-          renderList();
-          renderSummary();
-        });
-      });
-    }
+function del(i){
+  if(!confirm("削除しますか？"))return;
+  expenses.splice(i,1);
+  saveData();
+  render();
+}
 
-    // 集計
-    function renderSummary() {
-      // 月別集計
-      const monthlyTotals = {};
-      const yearlyTotals = {};
+const datetimeInput=document.getElementById("datetime");
+const storeSelect=document.getElementById("store");
+const amountInput=document.getElementById("amount");
 
-      expenses.forEach(entry => {
-        const d = new Date(entry.datetime);
-        const year = d.getFullYear();
-        const month = ('0' + (d.getMonth() + 1)).slice(-2);
-        const ymKey = `${year}-${month}`;
-
-        monthlyTotals[ymKey] = (monthlyTotals[ymKey] || 0) + entry.amount;
-        yearlyTotals[year] = (yearlyTotals[year] || 0) + entry.amount;
-      });
-
-      // 月別
-      monthlySummaryDiv.innerHTML = '';
-      Object.keys(monthlyTotals)
-        .sort((a,b)=>b.localeCompare(a))
-        .forEach(key => {
-          const [y, m] = key.split('-');
-          const div = document.createElement('div');
-          div.innerHTML = `${y}年${m}月 <span>¥${monthlyTotals[key].toLocaleString()}</span>`;
-          monthlySummaryDiv.appendChild(div);
-        });
-
-      // 年別
-      yearlySummaryDiv.innerHTML = '';
-      Object.keys(yearlyTotals)
-        .sort((a,b)=>b - a)
-        .forEach(y => {
-          const div = document.createElement('div');
-          div.innerHTML = `${y}年 <span>¥${yearlyTotals[y].toLocaleString()}</span>`;
-          yearlySummaryDiv.appendChild(div);
-        });
-    }
-
-    function formatDate(dtStr) {
-      const d = new Date(dtStr);
-      const y = d.getFullYear();
-      const m = ('0' + (d.getMonth() + 1)).slice(-2);
-      const day = ('0' + d.getDate()).slice(-2);
-      const hh = ('0' + d.getHours()).slice(-2);
-      const mm = ('0' + d.getMinutes()).slice(-2);
-      return `${y}/${m}/${day} ${hh}:${mm}`;
-    }
-  </script>
+// 初期ロード
+loadData();
+</script>
 </body>
 </html>
-
