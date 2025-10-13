@@ -2,27 +2,50 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>📊 シンプル家計簿（Google Drive版）</title>
+<title>📊 シンプル家計簿（Drive連携・ボタン版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   html, body { margin: 0; padding: 0; font-family: sans-serif; background-color: #f2f2f2; }
   header { background: #4caf50; color: white; text-align: center; padding: 10px; font-size: 1.2em; position: sticky; top: 0; }
   .container { max-width: 480px; margin: 0 auto; padding: 10px; }
+
   form { display: flex; flex-direction: column; gap: 10px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+
+  .btn-row { display: flex; justify-content: space-between; gap: 10px; }
   label { font-size: 0.9em; font-weight: bold; }
+
   input, select, button { font-size: 1em; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-  button { background: #4caf50; color: white; border: none; cursor: pointer; }
-  button:hover { background: #45a049; }
+  button { cursor: pointer; }
+
+  #add-btn { background: #4caf50; color: white; border: none; flex: 1; }
+  #add-btn:hover { background: #45a049; }
+
+  #clear-btn { background: #999; color: white; border: none; flex: 1; }
+  #clear-btn:hover { background: #777; }
+
+  .action-buttons button {
+    background: #2196f3;
+    color: white;
+    border: none;
+    margin: 3px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    width: 47%;
+  }
+  .action-buttons button:hover { background: #1976d2; }
+
   .list, .summary { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 10px; margin-top: 15px; }
   .entry { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; }
   .entry:last-child { border-bottom: none; }
   .entry-store { font-weight: bold; }
   .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
-  .delete-btn:hover { background: #c0392b; }
 </style>
 </head>
 <body>
-<header>📊 シンプル家計簿（Drive自動保存）</header>
+<header>📊 シンプル家計簿（Drive＋ボタン操作）</header>
+
 <div class="container">
   <form id="expense-form">
     <label>日付と時間</label>
@@ -33,7 +56,7 @@
       <optgroup label="コンビニ">
         <option>セブンイレブン</option><option>ファミリーマート</option><option>ローソン</option><option>まいばすけっと</option><option>ミニストップ</option><option>ヤマザキ</option><option>その他CS</option>
       </optgroup>
-       <optgroup label="スーパー">
+      <optgroup label="スーパー">
         <option>東急ストア</option><option>マルエツ</option><option>西友</option><option>ドンキホーテ</option><option>ダイエー</option><option>三和</option><option>その他SP</option>
       </optgroup>
       <optgroup label="ドラッグストア">
@@ -47,107 +70,133 @@
     <label>金額（円）</label>
     <input type="number" id="amount" required placeholder="例: 1250">
 
-    <button type="submit">追加する</button>
+    <div class="btn-row">
+      <button type="submit" id="add-btn">追加する</button>
+      <button type="button" id="clear-btn">クリア</button>
+    </div>
   </form>
 
-  <div class="list" id="expense-list"></div>
-  <div class="summary" id="summary">
-    <h3>📅 月別集計</h3><div id="monthly-summary"></div>
-    <h3>📆 年別集計</h3><div id="yearly-summary"></div>
+  <!-- 操作用ボタン群 -->
+  <div class="action-buttons">
+    <button id="show-all">📋 一覧表示</button>
+    <button id="filter-date">📅 日別絞込</button>
+    <button id="filter-store">🏪 店舗別絞込</button>
+    <button id="monthly">📆 月次集計</button>
+    <button id="yearly">📊 年次集計</button>
   </div>
+
+  <!-- 結果表示 -->
+  <div class="list" id="result"></div>
 </div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbw9zaG2HCfDe79dIYZZWdl3BCQd-_AVaxEdb5W7bRqnIenmtybuKxP2PXKSgOwMk0w/exec";
-
 let expenses = [];
 
-// ✅ Driveからロード
+// 初期ロード
+loadData();
+
+// ✅ Driveから取得
 async function loadData() {
-  try {
-    const res = await fetch(API_URL);
-    if (res.ok) {
-      expenses = await res.json();
-      if (!Array.isArray(expenses)) expenses = [];
-    }
-  } catch (e) {
-    console.error("Load error:", e);
-    expenses = [];
-  }
-  render();
+  const res = await fetch(API_URL + "?t=" + Date.now());
+  if (res.ok) expenses = await res.json();
 }
 
-// ✅ Driveへ自動保存
+// ✅ Driveへ保存
 async function saveData() {
-  try {
-    await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(expenses)
-    });
-  } catch (e) {
-    console.error("Save error:", e);
-  }
+  await fetch(API_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(expenses)
+  });
 }
 
+// ✅ 追加
 document.getElementById("expense-form").addEventListener("submit", e => {
   e.preventDefault();
   const datetime = datetimeInput.value;
   const store = storeSelect.value;
   const amount = parseFloat(amountInput.value);
   if (!datetime || !store || !amount) return;
-
   expenses.push({ datetime, store, amount });
   saveData();
-  render();
   e.target.reset();
 });
 
-function render() {
-  const list = document.getElementById("expense-list");
-  const monthSum = document.getElementById("monthly-summary");
-  const yearSum = document.getElementById("yearly-summary");
-  list.innerHTML = "";
-  monthSum.innerHTML = "";
-  yearSum.innerHTML = "";
+// ✅ フォームクリア
+document.getElementById("clear-btn").addEventListener("click", () => {
+  document.getElementById("expense-form").reset();
+});
 
-  if (expenses.length === 0) {
-    list.innerHTML = "<p style='text-align:center;color:#666'>データなし</p>";
-    return;
-  }
+// ✅ 各ボタン機能
+document.getElementById("show-all").addEventListener("click", () => showData(expenses));
+document.getElementById("filter-date").addEventListener("click", () => {
+  const date = prompt("日付を入力（例：2025-10-11）");
+  if (!date) return;
+  const filtered = expenses.filter(e => e.datetime.startsWith(date));
+  showData(filtered);
+});
+document.getElementById("filter-store").addEventListener("click", () => {
+  const store = prompt("店舗名を入力（例：西友）");
+  if (!store) return;
+  const filtered = expenses.filter(e => e.store.includes(store));
+  showData(filtered);
+});
+document.getElementById("monthly").addEventListener("click", showMonthly);
+document.getElementById("yearly").addEventListener("click", showYearly);
 
-  // 一覧
-  expenses.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))
-    .forEach((e,i)=>{
-      const div=document.createElement("div");
-      div.className="entry";
-      div.innerHTML=`<div><b>${e.store}</b><br>${formatDate(e.datetime)}<br>¥${e.amount.toLocaleString()}</div>
-                     <button class="delete-btn" onclick="del(${i})">削除</button>`;
-      list.appendChild(div);
-    });
+// ✅ 一覧表示
+function showData(listData) {
+  const area = document.getElementById("result");
+  area.innerHTML = "";
+  if (listData.length === 0) return area.innerHTML = "<p style='text-align:center;color:#666'>データなし</p>";
 
-  // 集計
-  const m={}; const y={};
-  for (const e of expenses){
+  listData.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime)).forEach(e=>{
+    const div=document.createElement("div");
+    div.className="entry";
+    div.innerHTML=`<div><b>${e.store}</b><br>${formatDate(e.datetime)}<br>¥${e.amount.toLocaleString()}</div>`;
+    area.appendChild(div);
+  });
+}
+
+// ✅ 月次集計
+function showMonthly() {
+  const area=document.getElementById("result");
+  const m={};
+  for(const e of expenses){
     const d=new Date(e.datetime);
-    const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    m[ym]=(m[ym]||0)+e.amount;
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    m[key]=(m[key]||0)+e.amount;
+  }
+  area.innerHTML="<h3>📆 月次集計</h3>";
+  Object.keys(m).sort().reverse().forEach(k=>{
+    area.innerHTML+=`${k}<span style='float:right'>¥${m[k].toLocaleString()}</span><br>`;
+  });
+}
+
+// ✅ 年次集計
+function showYearly() {
+  const area=document.getElementById("result");
+  const y={};
+  for(const e of expenses){
+    const d=new Date(e.datetime);
     y[d.getFullYear()]=(y[d.getFullYear()]||0)+e.amount;
   }
-
-  Object.keys(m).sort().reverse().forEach(k=>monthSum.innerHTML+=`${k}<span>¥${m[k].toLocaleString()}</span><br>`);
-  Object.keys(y).sort().reverse().forEach(k=>yearSum.innerHTML+=`${k}<span>¥${y[k].toLocaleString()}</span><br>`);
+  area.innerHTML="<h3>📊 年次集計</h3>";
+  Object.keys(y).sort().reverse().forEach(k=>{
+    area.innerHTML+=`${k}<span style='float:right'>¥${y[k].toLocaleString()}</span><br>`;
+  });
 }
 
-function del(i){
-  if(!confirm("削除しますか？"))return;
-  expenses.splice(i,1);
-  saveData();
-  render();
-}
-
+// ✅ 日付整形
 function formatDate(dt){
   const d=new Date(dt);
-  const y=d.getFullYear();
-  const m=String(d.getMonth()+1).padStart(2,'0');
-  const day=String(d.getDate()).padStart(2,'0');
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+const datetimeInput=document.getElementById("datetime");
+const storeSelect=document.getElementById("store");
+const amountInput=document.getElementById("amount");
+</script>
+</body>
+</html>
