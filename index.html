@@ -1,202 +1,336 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>📊 シンプル家計簿（Drive連携・ボタン版）</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>家計簿 v01（Drive連携・ボタン操作）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
-  html, body { margin: 0; padding: 0; font-family: sans-serif; background-color: #f2f2f2; }
-  header { background: #4caf50; color: white; text-align: center; padding: 10px; font-size: 1.2em; position: sticky; top: 0; }
-  .container { max-width: 480px; margin: 0 auto; padding: 10px; }
-
-  form { display: flex; flex-direction: column; gap: 10px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
-
-  .btn-row { display: flex; justify-content: space-between; gap: 10px; }
-  label { font-size: 0.9em; font-weight: bold; }
-
-  input, select, button { font-size: 1em; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-  button { cursor: pointer; }
-
-  #add-btn { background: #4caf50; color: white; border: none; flex: 1; }
-  #add-btn:hover { background: #45a049; }
-
-  #clear-btn { background: #999; color: white; border: none; flex: 1; }
-  #clear-btn:hover { background: #777; }
-
-  .action-buttons button {
-    background: #2196f3;
-    color: white;
-    border: none;
-    margin: 3px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-size: 0.9em;
-    cursor: pointer;
-    width: 47%;
-  }
-  .action-buttons button:hover { background: #1976d2; }
-
-  .list, .summary { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 10px; margin-top: 15px; }
-  .entry { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; }
-  .entry:last-child { border-bottom: none; }
-  .entry-store { font-weight: bold; }
-  .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
+  :root{--green:#4caf50;--blue:#2196f3;--red:#e74c3c;--gray:#999;}
+  html,body{margin:0;padding:0;font-family:sans-serif;background:#f2f2f2}
+  header{background:var(--green);color:#fff;text-align:center;padding:10px;font-size:1.1rem;position:sticky;top:0}
+  .container{max-width:520px;margin:0 auto;padding:10px}
+  form{display:flex;flex-direction:column;gap:10px;background:#fff;padding:12px;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,.08);margin-bottom:12px}
+  label{font-size:.9rem;font-weight:700}
+  input,select,button{font-size:1rem;padding:10px;border-radius:8px;border:1px solid #ddd}
+  .row{display:flex;gap:10px}
+  #add-btn{background:var(--green);color:#fff;border:none;flex:1}
+  #clear-btn{background:var(--gray);color:#fff;border:none;flex:1}
+  .panel{background:#fff;padding:10px;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,.08);margin-bottom:12px}
+  .panel .row{flex-wrap:wrap}
+  .panel button{background:var(--blue);color:#fff;border:none}
+  .list{background:#fff;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,.08);padding:10px}
+  .entry{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:8px 0}
+  .entry:last-child{border-bottom:none}
+  .entry .meta{font-size:.9rem;line-height:1.4}
+  .entry .store{font-weight:700}
+  .del-btn{background:var(--red);color:#fff;border:none;padding:6px 10px;border-radius:8px;font-size:.85rem}
+  .hint{font-size:.85rem;color:#666;margin-top:4px}
+  .sumline{padding:6px 0;border-bottom:1px dashed #eee}
+  .sumline:last-child{border-bottom:none}
+  .right{float:right;font-weight:700}
 </style>
 </head>
 <body>
-<header>📊 シンプル家計簿（Drive＋ボタン操作）</header>
+<header>家計簿 v01（Drive連携・ボタン操作）</header>
 
 <div class="container">
+
+  <!-- 入力フォーム -->
   <form id="expense-form">
-    <label>日付と時間</label>
-    <input type="datetime-local" id="datetime" required>
-
-    <label>お店</label>
-    <select id="store" required>
-      <optgroup label="コンビニ">
-        <option>セブンイレブン</option><option>ファミリーマート</option><option>ローソン</option><option>まいばすけっと</option><option>ミニストップ</option><option>ヤマザキ</option><option>その他CS</option>
-      </optgroup>
-      <optgroup label="スーパー">
-        <option>東急ストア</option><option>マルエツ</option><option>西友</option><option>ドンキホーテ</option><option>ダイエー</option><option>三和</option><option>その他SP</option>
-      </optgroup>
-      <optgroup label="ドラッグストア">
-        <option>HAC</option><option>ウェルシア</option><option>マツモトキヨシ</option><option>ココカラファイン</option><option>ツルハ</option><option>その他DS</option>
-      </optgroup>
-      <optgroup label="百均">
-        <option>ダイソー</option><option>Seria</option><option>Can★Do</option><option>その他百均</option>
-      </optgroup>
-    </select>
-
-    <label>金額（円）</label>
-    <input type="number" id="amount" required placeholder="例: 1250">
-
-    <div class="btn-row">
+    <div>
+      <label for="datetime">日付と時間</label>
+      <!-- iPhoneではダイヤル/カレンダーUIになります -->
+      <input type="datetime-local" id="datetime" required />
+    </div>
+    <div>
+      <label for="store">お店</label>
+      <select id="store" required>
+        <optgroup label="コンビニ">
+          <option>セブンイレブン</option><option>ファミリーマート</option>
+          <option>ローソン</option><option>まいばすけっと</option>
+          <option>ミニストップ</option><option>ヤマザキ</option><option>その他CS</option>
+        </optgroup>
+        <optgroup label="スーパー">
+          <option>東急ストア</option><option>マルエツ</option><option>西友</option>
+          <option>ドンキホーテ</option><option>ダイエー</option><option>三和</option><option>その他SP</option>
+        </optgroup>
+        <optgroup label="ドラッグストア">
+          <option>HAC</option><option>ウェルシア</option><option>マツモトキヨシ</option>
+          <option>ココカラファイン</option><option>ツルハ</option><option>その他DS</option>
+        </optgroup>
+        <optgroup label="百均">
+          <option>ダイソー</option><option>Seria</option><option>Can★Do</option><option>その他百均</option>
+        </optgroup>
+      </select>
+    </div>
+    <div>
+      <label for="amount">金額（円）</label>
+      <input type="number" id="amount" inputmode="decimal" required placeholder="例: 1250" />
+    </div>
+    <div class="row">
       <button type="submit" id="add-btn">追加する</button>
       <button type="button" id="clear-btn">クリア</button>
     </div>
+    <div class="hint">※ 追加すると自動でGoogle Driveに保存されます。</div>
   </form>
 
-  <!-- 操作用ボタン群 -->
-  <div class="action-buttons">
-    <button id="show-all">📋 一覧表示</button>
-    <button id="filter-date">📅 日別絞込</button>
-    <button id="filter-store">🏪 店舗別絞込</button>
-    <button id="monthly">📆 月次集計</button>
-    <button id="yearly">📊 年次集計</button>
+  <!-- 操作パネル -->
+  <div class="panel">
+    <div class="row">
+      <button id="reload">🔁 再読込</button>
+      <button id="show-all">📋 一覧表示</button>
+      <button id="monthly">📆 月次集計</button>
+      <button id="yearly">📊 年次集計</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <!-- 日別絞り込み：ダイヤル/カレンダーUI -->
+      <input type="date" id="date-filter" />
+      <button id="filter-date">📅 日別絞込</button>
+
+      <!-- 店舗別絞り込み：プルダウン（動的に候補生成） -->
+      <select id="store-filter" style="flex:1;min-width:140px">
+        <option value="">（店舗を選択）</option>
+      </select>
+      <button id="filter-store">🏪 店舗別絞込</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <!-- 月選択でその月の明細を表示 -->
+      <input type="month" id="month-filter" />
+      <button id="show-month-detail">📆 月の明細</button>
+    </div>
   </div>
 
   <!-- 結果表示 -->
-  <div class="list" id="result"></div>
+  <div class="list" id="result">
+    <p class="hint">上のボタンで「一覧」「絞り込み」「集計」を表示します。</p>
+  </div>
 </div>
 
 <script>
+/* === 設定 === */
 const API_URL = "https://script.google.com/macros/s/AKfycbw9zaG2HCfDe79dIYZZWdl3BCQd-_AVaxEdb5W7bRqnIenmtybuKxP2PXKSgOwMk0w/exec";
-let expenses = [];
 
-// 初期ロード
-loadData();
+/* === 状態 === */
+let expenses = []; // { id, datetime, store, amount }
 
-// ✅ Driveから取得
-async function loadData() {
-  const res = await fetch(API_URL + "?t=" + Date.now());
-  if (res.ok) expenses = await res.json();
+/* === 要素取得 === */
+const form = document.getElementById("expense-form");
+const dtInput = document.getElementById("datetime");
+const storeInput = document.getElementById("store");
+const amountInput = document.getElementById("amount");
+
+const resultDiv = document.getElementById("result");
+const dateFilter = document.getElementById("date-filter");
+const storeFilter = document.getElementById("store-filter");
+const monthFilter = document.getElementById("month-filter");
+
+/* === 初期ロード === */
+init();
+async function init(){
+  await loadData();
+  buildStoreFilterOptions();
 }
 
-// ✅ Driveへ保存
-async function saveData() {
-  await fetch(API_URL, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(expenses)
-  });
+/* === Drive 読み込み/保存 === */
+async function loadData(){
+  try{
+    const res = await fetch(API_URL + "?t=" + Date.now()); // キャッシュ回避
+    const data = res.ok ? await res.json() : [];
+    expenses = Array.isArray(data) ? data : [];
+
+    // 旧データにidが無い場合は付与（マイグレーション）
+    let changed = false;
+    expenses.forEach((e, i) => {
+      if (!e.id) { e.id = (new Date(e.datetime).getTime() || Date.now()) + "-" + i; changed = true; }
+    });
+    if(changed) await saveData(); // 一度だけ補正保存
+  }catch(e){
+    console.error("loadData error:", e);
+    expenses = [];
+  }
 }
 
-// ✅ 追加
-document.getElementById("expense-form").addEventListener("submit", e => {
+async function saveData(){
+  try{
+    await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(expenses)
+    });
+  }catch(e){
+    console.error("saveData error:", e);
+  }
+}
+
+/* === 入力：追加/クリア === */
+form.addEventListener("submit", async (e)=>{
   e.preventDefault();
-  const datetime = datetimeInput.value;
-  const store = storeSelect.value;
-  const amount = parseFloat(amountInput.value);
-  if (!datetime || !store || !amount) return;
-  expenses.push({ datetime, store, amount });
-  saveData();
-  e.target.reset();
+  const dt = dtInput.value;
+  const st = storeInput.value;
+  const amt = parseFloat(amountInput.value);
+  if(!dt || !st || !Number.isFinite(amt)) return;
+
+  const entry = { id: Date.now().toString(), datetime: dt, store: st, amount: amt };
+  expenses.push(entry);
+  await saveData();
+  form.reset();
+  showAll();             // 追加後は一覧を自動表示
+  buildStoreFilterOptions(); // 店舗フィルタ更新
 });
 
-// ✅ フォームクリア
-document.getElementById("clear-btn").addEventListener("click", () => {
-  document.getElementById("expense-form").reset();
+document.getElementById("clear-btn").addEventListener("click", ()=>{
+  form.reset();
 });
 
-// ✅ 各ボタン機能
-document.getElementById("show-all").addEventListener("click", () => showData(expenses));
-document.getElementById("filter-date").addEventListener("click", () => {
-  const date = prompt("日付を入力（例：2025-10-11）");
-  if (!date) return;
-  const filtered = expenses.filter(e => e.datetime.startsWith(date));
-  showData(filtered);
+/* === 操作ボタン === */
+document.getElementById("reload").addEventListener("click", async ()=>{
+  await loadData();
+  buildStoreFilterOptions();
+  resultDiv.innerHTML = `<p class="hint">最新のデータに更新しました。表示したい機能のボタンを押してください。</p>`;
 });
-document.getElementById("filter-store").addEventListener("click", () => {
-  const store = prompt("店舗名を入力（例：西友）");
-  if (!store) return;
-  const filtered = expenses.filter(e => e.store.includes(store));
-  showData(filtered);
-});
+
+document.getElementById("show-all").addEventListener("click", showAll);
 document.getElementById("monthly").addEventListener("click", showMonthly);
 document.getElementById("yearly").addEventListener("click", showYearly);
 
-// ✅ 一覧表示
-function showData(listData) {
-  const area = document.getElementById("result");
-  area.innerHTML = "";
-  if (listData.length === 0) return area.innerHTML = "<p style='text-align:center;color:#666'>データなし</p>";
+document.getElementById("filter-date").addEventListener("click", ()=>{
+  const v = dateFilter.value;            // 例: "2025-10-13"
+  if(!v) return;
+  showByDate(v);
+});
 
-  listData.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime)).forEach(e=>{
-    const div=document.createElement("div");
-    div.className="entry";
-    div.innerHTML=`<div><b>${e.store}</b><br>${formatDate(e.datetime)}<br>¥${e.amount.toLocaleString()}</div>`;
-    area.appendChild(div);
-  });
+document.getElementById("filter-store").addEventListener("click", ()=>{
+  const v = storeFilter.value;
+  if(!v) return;
+  showByStore(v);
+});
+
+document.getElementById("show-month-detail").addEventListener("click", ()=>{
+  const v = monthFilter.value;           // 例: "2025-10"
+  if(!v) return;
+  showMonthDetail(v);
+});
+
+/* === 表示（一覧/絞り込み/集計） === */
+function showAll(){
+  const list = [...expenses].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  renderList(list, "📋 一覧表示");
 }
 
-// ✅ 月次集計
-function showMonthly() {
-  const area=document.getElementById("result");
-  const m={};
+function showByDate(dateStr){ // "YYYY-MM-DD"
+  const list = expenses.filter(e => (e.datetime || "").startsWith(dateStr))
+                       .sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  renderList(list, `📅 日別：${dateStr}`);
+}
+
+function showByStore(store){
+  const list = expenses.filter(e => e.store === store)
+                       .sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  renderList(list, `🏪 店舗別：${store}`);
+}
+
+function showMonthDetail(ym){ // "YYYY-MM"
+  const list = expenses.filter(e => (e.datetime || "").slice(0,7) === ym)
+                       .sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+  renderList(list, `📆 月の明細：${ym}`);
+}
+
+function showMonthly(){
+  const m = {};
   for(const e of expenses){
-    const d=new Date(e.datetime);
-    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    m[key]=(m[key]||0)+e.amount;
+    const d = new Date(e.datetime);
+    if (isNaN(d)) continue;
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    m[ym] = (m[ym] || 0) + (e.amount||0);
   }
-  area.innerHTML="<h3>📆 月次集計</h3>";
-  Object.keys(m).sort().reverse().forEach(k=>{
-    area.innerHTML+=`${k}<span style='float:right'>¥${m[k].toLocaleString()}</span><br>`;
+  resultDiv.innerHTML = `<h3>📆 月次集計</h3>`;
+  const keys = Object.keys(m).sort().reverse();
+  if(keys.length===0){ resultDiv.innerHTML += noData(); return; }
+  keys.forEach(k=>{
+    const line = document.createElement("div");
+    line.className="sumline";
+    line.innerHTML = `${k}<span class="right">¥${m[k].toLocaleString()}</span>`;
+    line.addEventListener("click", ()=> showMonthDetail(k)); // その月をタップで明細へ
+    resultDiv.appendChild(line);
   });
 }
 
-// ✅ 年次集計
-function showYearly() {
-  const area=document.getElementById("result");
-  const y={};
+function showYearly(){
+  const y = {};
   for(const e of expenses){
-    const d=new Date(e.datetime);
-    y[d.getFullYear()]=(y[d.getFullYear()]||0)+e.amount;
+    const d = new Date(e.datetime);
+    if (isNaN(d)) continue;
+    const yr = d.getFullYear();
+    y[yr] = (y[yr] || 0) + (e.amount||0);
   }
-  area.innerHTML="<h3>📊 年次集計</h3>";
-  Object.keys(y).sort().reverse().forEach(k=>{
-    area.innerHTML+=`${k}<span style='float:right'>¥${y[k].toLocaleString()}</span><br>`;
+  resultDiv.innerHTML = `<h3>📊 年次集計</h3>`;
+  const keys = Object.keys(y).sort((a,b)=>b-a);
+  if(keys.length===0){ resultDiv.innerHTML += noData(); return; }
+  keys.forEach(k=>{
+    const line = document.createElement("div");
+    line.className="sumline";
+    line.innerHTML = `${k}年<span class="right">¥${y[k].toLocaleString()}</span>`;
+    resultDiv.appendChild(line);
   });
 }
 
-// ✅ 日付整形
-function formatDate(dt){
-  const d=new Date(dt);
-  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+/* === 共通描画 === */
+function renderList(list, title){
+  resultDiv.innerHTML = `<h3>${title}</h3>`;
+  if(list.length===0){ resultDiv.innerHTML += noData(); return; }
+
+  list.forEach(e=>{
+    const row = document.createElement("div");
+    row.className = "entry";
+    row.innerHTML = `
+      <div class="meta">
+        <div class="store">${escapeHTML(e.store||"")}</div>
+        <div>${formatDate(e.datetime)}</div>
+        <div>¥${(e.amount||0).toLocaleString()}</div>
+      </div>
+      <button class="del-btn">削除</button>
+    `;
+    row.querySelector(".del-btn").addEventListener("click", async ()=>{
+      if(!confirm("この記録を削除しますか？")) return;
+      // id一致で削除（フォールバック：日時+金額一致）
+      const before = expenses.length;
+      expenses = expenses.filter(x => {
+        if (e.id && x.id) return x.id !== e.id;
+        return !(x.datetime===e.datetime && x.store===e.store && x.amount===e.amount);
+      });
+      if (expenses.length !== before){
+        await saveData();
+        // 表示中のモードを維持したまま再表示
+        showAll(); // シンプルに一覧へ戻す（必要なら元のlist再描画に変更可）
+        buildStoreFilterOptions(); // 店舗候補更新
+      }
+    });
+    resultDiv.appendChild(row);
+  });
 }
 
-const datetimeInput=document.getElementById("datetime");
-const storeSelect=document.getElementById("store");
-const amountInput=document.getElementById("amount");
+function noData(){ return `<p class="hint">該当データがありません。</p>`; }
+
+/* === 店舗プルダウン（動的候補） === */
+function buildStoreFilterOptions(){
+  const set = new Set(expenses.map(e=>e.store).filter(Boolean));
+  const cur = storeFilter.value;
+  storeFilter.innerHTML = `<option value="">（店舗を選択）</option>` + 
+    [...set].sort().map(s=>`<option>${escapeHTML(s)}</option>`).join("");
+  if ([...set].includes(cur)) storeFilter.value = cur;
+}
+
+/* === ユーティリティ === */
+function formatDate(dtStr){
+  const d = new Date(dtStr);
+  if (isNaN(d)) return dtStr || "";
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+  return `${y}/${m}/${da} ${hh}:${mm}`;
+}
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
+}
 </script>
 </body>
 </html>
