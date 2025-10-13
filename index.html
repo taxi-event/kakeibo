@@ -18,6 +18,7 @@
   .entry:last-child { border-bottom: none; }
   .entry-store { font-weight: bold; }
   .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
+  .delete-btn:hover { background: #c0392b; }
 </style>
 </head>
 <body>
@@ -57,24 +58,36 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwiZTcPmbRczRoXNkr4besGda-BGxsfDURPaDEjhbGirJ_FL1nMaJJlfu1OjqAVv-n3/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw9zaG2HCfDe79dIYZZWdl3BCQd-_AVaxEdb5W7bRqnIenmtybuKxP2PXKSgOwMk0w/exec";
 
 let expenses = [];
 
 // ✅ Driveからロード
 async function loadData() {
-  const res = await fetch(API_URL);
-  if (res.ok) expenses = await res.json();
+  try {
+    const res = await fetch(API_URL);
+    if (res.ok) {
+      expenses = await res.json();
+      if (!Array.isArray(expenses)) expenses = [];
+    }
+  } catch (e) {
+    console.error("Load error:", e);
+    expenses = [];
+  }
   render();
 }
 
 // ✅ Driveへ自動保存
 async function saveData() {
-  await fetch(API_URL, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(expenses)
-  });
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(expenses)
+    });
+  } catch (e) {
+    console.error("Save error:", e);
+  }
 }
 
 document.getElementById("expense-form").addEventListener("submit", e => {
@@ -108,7 +121,7 @@ function render() {
     .forEach((e,i)=>{
       const div=document.createElement("div");
       div.className="entry";
-      div.innerHTML=`<div><b>${e.store}</b><br>${e.datetime}<br>¥${e.amount.toLocaleString()}</div>
+      div.innerHTML=`<div><b>${e.store}</b><br>${formatDate(e.datetime)}<br>¥${e.amount.toLocaleString()}</div>
                      <button class="delete-btn" onclick="del(${i})">削除</button>`;
       list.appendChild(div);
     });
@@ -133,12 +146,8 @@ function del(i){
   render();
 }
 
-const datetimeInput=document.getElementById("datetime");
-const storeSelect=document.getElementById("store");
-const amountInput=document.getElementById("amount");
-
-// 初期ロード
-loadData();
-</script>
-</body>
-</html>
+function formatDate(dt){
+  const d=new Date(dt);
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
