@@ -72,11 +72,12 @@ let expenses = [];
 
 async function loadData() {
   try {
-    const res = await fetch(API_URL);
-    expenses = await res.json();
+    const res = await fetch(API_URL, { mode: "cors" });
+    const text = await res.text(); // ← 一度テキストとして受け取る
+    expenses = text ? JSON.parse(text) : [];
     renderList(expenses);
   } catch (err) {
-    alert("データ取得に失敗しました");
+    alert("データ取得に失敗しました\n" + err.message);
   }
 }
 
@@ -168,6 +169,7 @@ loadData();
 </script>
 </body>
 </html>
+
 
 
 
