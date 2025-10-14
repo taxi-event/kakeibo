@@ -2,79 +2,81 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>📊 家計簿 v3.0（Googleスプレッドシート版）</title>
+<title>📊 家計簿 v3.2（スプレッドシート連携）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  html, body { margin: 0; padding: 0; font-family: sans-serif; background: #f4f4f4; }
-  header { background: #4caf50; color: white; text-align: center; padding: 10px; font-size: 1.2em; position: sticky; top: 0; }
+  html, body { margin: 0; padding: 0; font-family: sans-serif; background: #f2f2f2; }
+  header { background: #4caf50; color: #fff; text-align: center; padding: 10px; font-size: 1.2em; position: sticky; top: 0; }
   .container { max-width: 480px; margin: 0 auto; padding: 10px; }
-  form { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
+  form { display: flex; flex-direction: column; gap: 10px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
   input, select, button { font-size: 1em; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-  button { background: #4caf50; color: white; border: none; cursor: pointer; }
-  button:hover { background: #45a049; }
+  button { cursor: pointer; }
+  .btn-main { background: #4caf50; color: #fff; border: none; }
+  .btn-sub { background: #555; color: #fff; border: none; }
+  .btn-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: space-between; margin-bottom: 10px; }
   .list, .summary { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 10px; margin-top: 15px; }
-  .entry { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 6px 0; }
-  .entry:last-child { border-bottom: none; }
-  .entry-store { font-weight: bold; }
+  .entry { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 6px 0; }
   .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8em; }
-  .toolbar { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
-<header>📊 家計簿 v3.0（スプレッドシート連携）</header>
-
+<header>📊 家計簿 v3.2（スプレッドシート連携）</header>
 <div class="container">
   <form id="expense-form">
     <label>日付と時間</label>
     <input type="datetime-local" id="datetime" required>
+
     <label>お店</label>
     <select id="store" required>
       <optgroup label="コンビニ">
-        <option>セブンイレブン</option><option>ファミリーマート</option><option>ローソン</option><option>まいばすけっと</option><option>ミニストップ</option><option>その他CS</option>
+        <option>セブンイレブン</option><option>ファミリーマート</option><option>ローソン</option><option>まいばすけっと</option><option>ミニストップ</option><option>ヤマザキ</option>
       </optgroup>
       <optgroup label="スーパー">
-        <option>東急ストア</option><option>マルエツ</option><option>西友</option><option>ダイエー</option><option>三和</option><option>その他SP</option>
+        <option>東急ストア</option><option>マルエツ</option><option>西友</option><option>ドンキホーテ</option><option>ダイエー</option><option>三和</option>
       </optgroup>
       <optgroup label="ドラッグストア">
-        <option>HAC</option><option>ウエルシア</option><option>マツモトキヨシ</option><option>ココカラファイン</option><option>ツルハ</option><option>その他DS</option>
+        <option>HAC</option><option>ウェルシア</option><option>マツモトキヨシ</option><option>ココカラファイン</option>
       </optgroup>
       <optgroup label="百均">
-        <option>ダイソー</option><option>Seria</option><option>Can★Do</option><option>その他百均</option>
+        <option>ダイソー</option><option>Seria</option><option>Can★Do</option>
       </optgroup>
     </select>
+
     <label>金額（円）</label>
     <input type="number" id="amount" required placeholder="例: 1250">
-    <div class="toolbar">
-      <button type="submit">追加する</button>
-      <button type="button" id="clear-btn" style="background:#777;">クリア</button>
+
+    <div class="btn-group">
+      <button type="submit" class="btn-main">追加する</button>
+      <button type="button" id="clear-btn" class="btn-sub">クリア</button>
+      <button type="button" id="reload-btn" class="btn-sub">再読込</button>
     </div>
   </form>
 
-  <div class="list" id="expense-list"></div>
+  <div class="btn-group">
+    <button id="daily-btn">📅 日別絞込</button>
+    <button id="store-btn">🏪 店舗別絞込</button>
+    <button id="month-btn">📆 月次集計</button>
+    <button id="year-btn">📊 年次集計</button>
+  </div>
 
-  <div class="summary" id="summary">
-    <h3>📅 月別集計</h3><div id="monthly-summary"></div>
-    <h3>📆 年別集計</h3><div id="yearly-summary"></div>
+  <div id="expense-list" class="list"></div>
+  <div class="summary">
+    <h3>集計結果</h3>
+    <div id="summary-content"></div>
   </div>
 </div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycby1qt71Kml41aqKj02Hu5W5hnsFPQo7ZoD8S9NJX0Bg7c2M1oBXyaRkEPVxzYERdJic_A/exec";
-
 let expenses = [];
-
-// ✅ 初期ロード
-loadData();
 
 async function loadData() {
   try {
     const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("ロード失敗");
     expenses = await res.json();
-    render();
+    renderList(expenses);
   } catch (err) {
-    console.error(err);
-    alert("データを読み込めませんでした。");
+    alert("データ取得に失敗しました");
   }
 }
 
@@ -90,74 +92,70 @@ async function saveData() {
   }
 }
 
-// ✅ 入力フォーム処理
+function renderList(data) {
+  const list = document.getElementById("expense-list");
+  list.innerHTML = "";
+  if (!data || data.length === 0) {
+    list.innerHTML = "<p style='text-align:center;color:#666;'>データなし</p>";
+    return;
+  }
+  data.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))
+    .forEach((e,i)=>{
+      const div=document.createElement("div");
+      div.className="entry";
+      div.innerHTML=`<div><b>${e.store}</b><br>${e.datetime}<br>¥${Number(e.amount).toLocaleString()}</div>
+                     <button class="delete-btn" onclick="del(${i})">削除</button>`;
+      list.appendChild(div);
+    });
+}
+
 document.getElementById("expense-form").addEventListener("submit", e => {
   e.preventDefault();
   const datetime = document.getElementById("datetime").value;
   const store = document.getElementById("store").value;
   const amount = parseFloat(document.getElementById("amount").value);
   if (!datetime || !store || !amount) return;
-
   expenses.push({ id: Date.now(), datetime, store, amount });
   saveData();
-  render();
+  renderList(expenses);
   e.target.reset();
 });
 
-// ✅ 入力クリア
-document.getElementById("clear-btn").addEventListener("click", () => {
-  if (confirm("入力内容をリセットしますか？")) {
-    document.getElementById("expense-form").reset();
-  }
+document.getElementById("clear-btn").addEventListener("click", ()=> {
+  document.getElementById("expense-form").reset();
 });
 
-// ✅ 一覧表示
-function render() {
-  const list = document.getElementById("expense-list");
-  const monthSum = document.getElementById("monthly-summary");
-  const yearSum = document.getElementById("yearly-summary");
-  list.innerHTML = ""; monthSum.innerHTML = ""; yearSum.innerHTML = "";
-
-  if (expenses.length === 0) {
-    list.innerHTML = "<p style='text-align:center;color:#666'>データなし</p>";
-    return;
-  }
-
-  expenses.sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))
-  .forEach((e,i)=>{
-    const div=document.createElement("div");
-    div.className="entry";
-    div.innerHTML=`<div><b>${e.store}</b><br>${formatDate(e.datetime)}<br>¥${e.amount.toLocaleString()}</div>
-                   <button class="delete-btn" onclick="del(${i})">削除</button>`;
-    list.appendChild(div);
-  });
-
-  // ✅ 月別・年別集計
-  const m={}, y={};
-  for(const e of expenses){
-    const d=new Date(e.datetime);
-    const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    m[ym]=(m[ym]||0)+e.amount;
-    y[d.getFullYear()]=(y[d.getFullYear()]||0)+e.amount;
-  }
-  Object.keys(m).sort().reverse().forEach(k=>monthSum.innerHTML+=`${k} <span>¥${m[k].toLocaleString()}</span><br>`);
-  Object.keys(y).sort().reverse().forEach(k=>yearSum.innerHTML+=`${k} <span>¥${y[k].toLocaleString()}</span><br>`);
-}
+document.getElementById("reload-btn").addEventListener("click", ()=> {
+  loadData();
+});
 
 function del(i){
   if(!confirm("削除しますか？"))return;
   expenses.splice(i,1);
   saveData();
-  render();
+  renderList(expenses);
 }
 
-function formatDate(dtStr){
-  const d=new Date(dtStr);
-  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+// --- 集計ボタン
+document.getElementById("month-btn").addEventListener("click", ()=>showSummary("month"));
+document.getElementById("year-btn").addEventListener("click", ()=>showSummary("year"));
+
+function showSummary(mode){
+  const sumDiv=document.getElementById("summary-content");
+  sumDiv.innerHTML="";
+  if(expenses.length===0)return;
+  const map={};
+  for(const e of expenses){
+    const d=new Date(e.datetime);
+    const key=(mode==="month")?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`:d.getFullYear();
+    map[key]=(map[key]||0)+Number(e.amount);
+  }
+  Object.keys(map).sort().reverse().forEach(k=>{
+    sumDiv.innerHTML+=`${k} : ¥${map[k].toLocaleString()}<br>`;
+  });
 }
+
+loadData();
 </script>
 </body>
 </html>
-
-
-
