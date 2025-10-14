@@ -67,25 +67,7 @@
 </div>
 
 <script>
-const API_URL = "function doGet(e) {
-  const sheet = getSheet();
-  const data = sheet.getDataRange().getValues();
-  const headers = data.shift();
-  const json = data.map(r => Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
-  
-  return ContentService.createTextOutput(JSON.stringify(json))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-}
-
-function doOptions(e) {
-  return ContentService.createTextOutput("")
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
-";
+const API_URL = "https://script.google.com/macros/s/AKfycbwcUPmWHqwe8dyXsnVVbO2vsZOAu5Fg48rPOUldCFTsfllS8DS-qSeY5pAj0ZN9o8jv4g/exec";
 let expenses = [];
 
 async function loadData() {
@@ -187,6 +169,7 @@ loadData();
 </script>
 </body>
 </html>
+
 
 
 
