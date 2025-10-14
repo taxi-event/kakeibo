@@ -85,12 +85,12 @@ async function saveData() {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      mode: "cors",  // ← 重要：CORS対応
+      mode: "cors",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(expenses)
     });
 
-    const text = await res.text(); // ← GASはJSONではなくtext("OK")を返す
+    const text = await res.text();
     if (text.includes("OK")) {
       alert("保存しました");
     } else {
@@ -169,6 +169,7 @@ loadData();
 </script>
 </body>
 </html>
+
 
 
 
