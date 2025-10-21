@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>📊 家計簿 v3.6</title>
+<title>📊 家計簿 v3.7</title>
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4CAF50" />
 <style>
@@ -14,13 +14,13 @@
   .card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08);padding:12px;margin:12px 0}
   label{font-size:.9em;font-weight:700;display:block;margin:8px 0 4px}
   input,select,button{width:100%;font-size:16px;padding:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box}
-  button{cursor:pointer}
-  .btn-main{background:var(--g);color:#fff;border:none}
-  .btn-sub{background:#555;color:#fff;border:none}
-  .btn-danger{background:var(--dx);color:#fff;border:none}
+  button{cursor:pointer;border:none}
+  .btn-main{background:var(--g);color:#fff}
+  .btn-sub{background:#555;color:#fff}
+  .btn-danger{background:var(--dx);color:#fff}
   .btns{display:flex;gap:8px;flex-wrap:wrap}
   .tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .tabs button{flex:1 1 30%;border:none;background:#eee}
+  .tabs button{flex:1 1 30%;background:#eee}
   .tabs button.active{background:#d7f3dc}
   .sumline{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #eee}
   .sumline:last-child{border-bottom:none}
@@ -32,10 +32,10 @@
 </style>
 </head>
 <body>
-<header>📊 家計簿 v3.6（スマホ単体）</header>
+<header>📊 家計簿 v3.7（スマホ単体）</header>
 <div class="wrap">
 
-  <!-- 上：集計エリア（タブ） -->
+  <!-- 上：集計（タブ） -->
   <div class="card">
     <div class="tabs">
       <button id="tab-day"   class="active">📅 日別</button>
@@ -46,6 +46,7 @@
       <button id="tab-all">🔁 全件</button>
     </div>
     <div id="summary" style="margin-top:8px"></div>
+    <p class="muted" style="margin:6px 0 0">※日次は直近3日分のみ表示</p>
   </div>
 
   <!-- 中：入力フォーム -->
@@ -91,12 +92,12 @@
       <input id="file-import" type="file" accept=".csv" style="display:none" />
       <button id="btn-import" class="btn-sub">📥 CSV読込</button>
     </div>
-    <p class="muted" style="margin:6px 0 0">※データは端末内（IndexedDB）に保存。履歴やキャッシュを消しても保持されます。</p>
+    <p class="muted" style="margin:6px 0 0">※データは端末内（IndexedDB）に保存。履歴やキャッシュを消しても保持。</p>
   </div>
 
-  <!-- 下：一覧 -->
+  <!-- 下：一覧（直近10件） -->
   <div class="card">
-    <h3 style="margin:6px 0 10px">📄 一覧</h3>
+    <h3 style="margin:6px 0 10px">📄 一覧（直近10件）</h3>
     <div id="list"></div>
     <p id="empty" class="muted">データなし</p>
   </div>
@@ -105,7 +106,7 @@
 
 <script>
 /* ===== IndexedDB 基盤 ===== */
-const DB_NAME="kakeiboDB_v36";
+const DB_NAME="kakeiboDB_v37";
 const STORE="expenses";
 let db=null;
 
@@ -149,7 +150,7 @@ function idbDelete(id){
 }
 
 /* ===== 状態 ===== */
-let items=[];           // 全件
+let items=[];           // 全件（内部保持）
 let editingId=null;     // 編集中ID（nullで新規）
 const yen=n=>`¥${Number(n||0).toLocaleString()}`;
 const fmt=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
@@ -171,31 +172,31 @@ function setNow(){
   dt.value = now.toISOString().slice(0,16);
 }
 
-/* ===== 描画 ===== */
+/* ===== 描画（一覧 直近10件） ===== */
 function renderList(){
   listEl.innerHTML="";
   if(!items.length){ emptyEl.style.display=""; return; }
   emptyEl.style.display="none";
-  [...items].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime))
-    .forEach(it=>{
-      const d=new Date(it.datetime);
-      const div=document.createElement("div");
-      div.className="entry";
-      div.innerHTML=`
-        <div class="e-left">
-          <div><b>${it.store}</b> <small class="badge">${it.category}</small></div>
-          <div class="muted">${fmt(d)}</div>
+  const latest = [...items].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime)).slice(0,10);
+  latest.forEach(it=>{
+    const d=new Date(it.datetime);
+    const div=document.createElement("div");
+    div.className="entry";
+    div.innerHTML=`
+      <div class="e-left">
+        <div><b>${it.store}</b> <small class="badge">${it.category}</small></div>
+        <div class="muted">${fmt(d)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700">${yen(it.amount)}</div>
+        <div class="btns" style="margin-top:6px">
+          <button class="btn-sub" data-edit="${it.id}">✏️ 編集</button>
+          <button class="btn-danger" data-del="${it.id}">削除</button>
         </div>
-        <div style="text-align:right">
-          <div style="font-weight:700">${yen(it.amount)}</div>
-          <div class="btns" style="margin-top:6px">
-            <button class="btn-sub" data-edit="${it.id}">✏️ 編集</button>
-            <button class="btn-danger" data-del="${it.id}">削除</button>
-          </div>
-        </div>
-      `;
-      listEl.appendChild(div);
-    });
+      </div>
+    `;
+    listEl.appendChild(div);
+  });
 
   // 削除
   listEl.querySelectorAll("[data-del]").forEach(b=>{
@@ -205,7 +206,7 @@ function renderList(){
       await idbDelete(id);
       items=items.filter(x=>x.id!==id);
       renderList();
-      refreshSummary(); // 上部集計も更新
+      refreshSummary();
     };
   });
   // 編集
@@ -228,15 +229,38 @@ function renderList(){
 /* ===== 集計 ===== */
 function summarize(mode){
   const map={};
-  for(const it of items){
-    const d=new Date(it.datetime);
-    let key="";
-    if(mode==="day")   key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    if(mode==="month") key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(mode==="year")  key=String(d.getFullYear());
-    if(mode==="store") key=it.store;
-    if(mode==="cat")   key=it.category;
-    map[key]=(map[key]||0)+Number(it.amount||0);
+  if(mode==="day"){
+    // 直近3日分のみ（ユニークな日付キーを3つまで）
+    const sorted=[...items].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+    const pickedKeys=new Set();
+    for(const it of sorted){
+      const d=new Date(it.datetime);
+      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if(pickedKeys.size<3 || pickedKeys.has(key)){
+        pickedKeys.add(key);
+        map[key]=(map[key]||0)+Number(it.amount||0);
+      }
+      if(pickedKeys.size>=3){
+        // 以後は3日以外のキーは無視
+        const next = sorted.find(x=>{
+          const dd=new Date(x.datetime);
+          const k=`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+          return !pickedKeys.has(k);
+        });
+        if(!next) break;
+      }
+    }
+  }else{
+    for(const it of items){
+      const d=new Date(it.datetime);
+      let key="";
+      if(mode==="month") key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if(mode==="year")  key=String(d.getFullYear());
+      if(mode==="store") key=it.store;
+      if(mode==="cat")   key=it.category;
+      if(!key) continue;
+      map[key]=(map[key]||0)+Number(it.amount||0);
+    }
   }
   const keys=Object.keys(map);
   sumEl.innerHTML = keys.length? "" : '<p class="muted">データなし</p>';
@@ -249,13 +273,12 @@ function summarize(mode){
 }
 let currentTab="day";
 function refreshSummary(){ summarize(currentTab); }
-document.getElementById("tab-day").onclick = ()=>{setActive("tab-day"); currentTab="day"; refreshSummary();}
-document.getElementById("tab-month").onclick=()=>{setActive("tab-month");currentTab="month";refreshSummary();}
-document.getElementById("tab-year").onclick = ()=>{setActive("tab-year"); currentTab="year"; refreshSummary();}
-document.getElementById("tab-store").onclick=()=>{setActive("tab-store");currentTab="store";refreshSummary();}
-document.getElementById("tab-cat").onclick  = ()=>{setActive("tab-cat");  currentTab="cat";  refreshSummary();}
-document.getElementById("tab-all").onclick  = ()=>{setActive(""); currentTab="day"; renderList(); refreshSummary();};
-
+document.getElementById("tab-day").onclick   = ()=>{setActive("tab-day"); currentTab="day";   refreshSummary();}
+document.getElementById("tab-month").onclick = ()=>{setActive("tab-month");currentTab="month"; refreshSummary();}
+document.getElementById("tab-year").onclick  = ()=>{setActive("tab-year"); currentTab="year";  refreshSummary();}
+document.getElementById("tab-store").onclick = ()=>{setActive("tab-store");currentTab="store"; refreshSummary();}
+document.getElementById("tab-cat").onclick   = ()=>{setActive("tab-cat");  currentTab="cat";   refreshSummary();}
+document.getElementById("tab-all").onclick   = ()=>{setActive(""); currentTab="day"; renderList(); refreshSummary();};
 function setActive(id){
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
   if(id) document.getElementById(id).classList.add("active");
@@ -270,7 +293,6 @@ document.getElementById("btn-add").onclick=async()=>{
   if(!datetime||!s||!a){ alert("日付・お店・金額は必須です"); return; }
 
   if(editingId){
-    // 上書き
     const it={id:editingId, datetime, store:s, category:c, amount:a};
     await idbPut(it);
     const idx=items.findIndex(x=>x.id===editingId);
@@ -282,14 +304,13 @@ document.getElementById("btn-add").onclick=async()=>{
     await idbPut(it);
     items.push(it);
   }
-  amt.value=""; // 金額だけクリア
+  amt.value="";
   renderList();
   refreshSummary();
 };
 
 document.getElementById("btn-clear").onclick=()=>{
-  dt.value = dt.value || ""; // そのまま
-  amt.value=""; // 入力クリア
+  amt.value="";
 };
 
 document.getElementById("btn-reload").onclick=async()=>{
@@ -298,19 +319,29 @@ document.getElementById("btn-reload").onclick=async()=>{
   refreshSummary();
 };
 
-/* ===== CSV ===== */
+/* ===== CSV（UTF-8+BOM） ===== */
 document.getElementById("btn-export").onclick=()=>{
   if(!items.length){ alert("データなし"); return; }
-  const csv="id,datetime,store,amount,category\n"+items.map(it=>
-    [it.id,it.datetime,escapeCSV(it.store),it.amount,escapeCSV(it.category)].join(",")
-  ).join("\n");
-  const blob=new Blob([csv],{type:"text/csv"});
+  const header="id,datetime,store,amount,category\n";
+  const rows = items
+    .sort((a,b)=>new Date(a.datetime)-new Date(b.datetime))
+    .map(it=>[
+      it.id,
+      it.datetime,
+      csvEscape(it.store),
+      it.amount,
+      csvEscape(it.category)
+    ].join(","))
+    .join("\n");
+  const csv = header + rows;
+  const bom = new Uint8Array([0xEF,0xBB,0xBF]); // UTF-8 with BOM
+  const blob=new Blob([bom, csv],{type:"text/csv"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
   a.download="kakeibo_backup.csv";
   a.click();
 };
-function escapeCSV(s){ return String(s).replaceAll('"','""'); }
+function csvEscape(s){ return String(s??"").replaceAll('"','""'); }
 
 document.getElementById("btn-import").onclick=()=>document.getElementById("file-import").click();
 document.getElementById("file-import").addEventListener("change",e=>{
@@ -321,13 +352,9 @@ document.getElementById("file-import").addEventListener("change",e=>{
       const lines=String(r.result).trim().split(/\r?\n/);
       const body=lines.slice(1).filter(Boolean);
       const arr=body.map(l=>{
-        // かんたんCSV（カンマ区切り、ダブルクォートなし前提）
         const [id,datetime,store,amount,category]=l.split(",");
         return {id:Number(id)||Date.now(), datetime, store, amount:Number(amount)||0, category};
       });
-      // 置き換え
-      // 既存全部削除 → 新規全部登録（簡易）
-      // ※本番でマージしたい場合はキー突合に変更可能
       const tx=db.transaction(STORE,"readwrite");
       const st=tx.objectStore(STORE);
       st.clear();
@@ -349,7 +376,6 @@ document.getElementById("file-import").addEventListener("change",e=>{
   setNow();
   renderList();
   refreshSummary();
-  // PWA
   if('serviceWorker' in navigator){ navigator.serviceWorker.register('service-worker.js'); }
 })();
 </script>
