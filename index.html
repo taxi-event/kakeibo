@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>📊 家計簿 v3.7</title>
+<title>📊 家計簿 v3.8（日付指定集計）</title>
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#4CAF50" />
 <style>
@@ -29,13 +29,16 @@
   .e-left{max-width:74%}
   .muted{color:#777}
   small.badge{background:#eee;border-radius:999px;padding:2px 8px;margin-left:6px}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .inline input[type="date"]{flex:1}
+  .pill{background:#eef7f0;color:#1b5e20;padding:4px 8px;border-radius:999px;font-size:12px}
 </style>
 </head>
 <body>
-<header>📊 家計簿 v3.7（スマホ単体）</header>
+<header>📊 家計簿 v3.8（スマホ単体）</header>
 <div class="wrap">
 
-  <!-- 上：集計（タブ） -->
+  <!-- 上：集計（タブ＋日付指定） -->
   <div class="card">
     <div class="tabs">
       <button id="tab-day"   class="active">📅 日別</button>
@@ -45,8 +48,17 @@
       <button id="tab-cat">🍱 補足別</button>
       <button id="tab-all">🔁 全件</button>
     </div>
+
+    <!-- 日付指定UI（「日別」アクティブ時のみ使う） -->
+    <div class="inline" style="margin-top:8px">
+      <span class="pill">任意日集計</span>
+      <input id="dayFilter" type="date" />
+      <button id="btn-apply-day" class="btn-sub" style="flex:0 0 auto">適用</button>
+      <button id="btn-clear-day" class="btn-sub" style="flex:0 0 auto">解除</button>
+    </div>
+
     <div id="summary" style="margin-top:8px"></div>
-    <p class="muted" style="margin:6px 0 0">※日次は直近3日分のみ表示</p>
+    <p class="muted" style="margin:6px 0 0">※日付未指定時は「直近3日分」を自動集計</p>
   </div>
 
   <!-- 中：入力フォーム -->
@@ -106,6 +118,7 @@
 
 <script>
 /* ===== IndexedDB 基盤 ===== */
+/* v3.7 と同じDB名にして既存データを継続利用 */
 const DB_NAME="kakeiboDB_v37";
 const STORE="expenses";
 let db=null;
@@ -152,6 +165,7 @@ function idbDelete(id){
 /* ===== 状態 ===== */
 let items=[];           // 全件（内部保持）
 let editingId=null;     // 編集中ID（nullで新規）
+let dayFilter=null;     // 'YYYY-MM-DD' | null
 const yen=n=>`¥${Number(n||0).toLocaleString()}`;
 const fmt=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
@@ -164,6 +178,7 @@ const listEl = document.getElementById("list");
 const emptyEl = document.getElementById("empty");
 const sumEl = document.getElementById("summary");
 const btnAdd = document.getElementById("btn-add");
+const dayInput = document.getElementById("dayFilter");
 
 /* ===== 初期セット ===== */
 function setNow(){
@@ -229,25 +244,29 @@ function renderList(){
 /* ===== 集計 ===== */
 function summarize(mode){
   const map={};
+
   if(mode==="day"){
-    // 直近3日分のみ（ユニークな日付キーを3つまで）
-    const sorted=[...items].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
-    const pickedKeys=new Set();
-    for(const it of sorted){
-      const d=new Date(it.datetime);
-      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      if(pickedKeys.size<3 || pickedKeys.has(key)){
-        pickedKeys.add(key);
-        map[key]=(map[key]||0)+Number(it.amount||0);
+    if(dayFilter){
+      // 任意日指定：その日だけ
+      for(const it of items){
+        const d=new Date(it.datetime);
+        const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if(key===dayFilter){
+          map[key]=(map[key]||0)+Number(it.amount||0);
+        }
       }
-      if(pickedKeys.size>=3){
-        // 以後は3日以外のキーは無視
-        const next = sorted.find(x=>{
-          const dd=new Date(x.datetime);
-          const k=`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
-          return !pickedKeys.has(k);
-        });
-        if(!next) break;
+    }else{
+      // 直近3日分：最新から日付キー3つ
+      const sorted=[...items].sort((a,b)=>new Date(b.datetime)-new Date(a.datetime));
+      const picked=new Set();
+      for(const it of sorted){
+        const d=new Date(it.datetime);
+        const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if(picked.size<3 || picked.has(key)){
+          picked.add(key);
+          map[key]=(map[key]||0)+Number(it.amount||0);
+        }
+        if(picked.size>=3) continue;
       }
     }
   }else{
@@ -262,6 +281,7 @@ function summarize(mode){
       map[key]=(map[key]||0)+Number(it.amount||0);
     }
   }
+
   const keys=Object.keys(map);
   sumEl.innerHTML = keys.length? "" : '<p class="muted">データなし</p>';
   keys.sort((a,b)=>b.localeCompare(a,'ja')).forEach(k=>{
@@ -273,16 +293,31 @@ function summarize(mode){
 }
 let currentTab="day";
 function refreshSummary(){ summarize(currentTab); }
+function setActive(id){
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  if(id) document.getElementById(id).classList.add("active");
+}
+
+/* タブ切替 */
 document.getElementById("tab-day").onclick   = ()=>{setActive("tab-day"); currentTab="day";   refreshSummary();}
 document.getElementById("tab-month").onclick = ()=>{setActive("tab-month");currentTab="month"; refreshSummary();}
 document.getElementById("tab-year").onclick  = ()=>{setActive("tab-year"); currentTab="year";  refreshSummary();}
 document.getElementById("tab-store").onclick = ()=>{setActive("tab-store");currentTab="store"; refreshSummary();}
 document.getElementById("tab-cat").onclick   = ()=>{setActive("tab-cat");  currentTab="cat";   refreshSummary();}
 document.getElementById("tab-all").onclick   = ()=>{setActive(""); currentTab="day"; renderList(); refreshSummary();};
-function setActive(id){
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  if(id) document.getElementById(id).classList.add("active");
-}
+
+/* 日付指定の適用／解除 */
+document.getElementById("btn-apply-day").onclick=()=>{
+  dayFilter = dayInput.value || null;
+  if(currentTab!=="day") { setActive("tab-day"); currentTab="day"; }
+  refreshSummary();
+};
+document.getElementById("btn-clear-day").onclick=()=>{
+  dayFilter=null;
+  dayInput.value="";
+  if(currentTab!=="day") { setActive("tab-day"); currentTab="day"; }
+  refreshSummary();
+};
 
 /* ===== 入出力 ===== */
 document.getElementById("btn-add").onclick=async()=>{
@@ -309,9 +344,7 @@ document.getElementById("btn-add").onclick=async()=>{
   refreshSummary();
 };
 
-document.getElementById("btn-clear").onclick=()=>{
-  amt.value="";
-};
+document.getElementById("btn-clear").onclick=()=>{ amt.value=""; };
 
 document.getElementById("btn-reload").onclick=async()=>{
   items = await idbGetAll();
@@ -319,7 +352,7 @@ document.getElementById("btn-reload").onclick=async()=>{
   refreshSummary();
 };
 
-/* ===== CSV（UTF-8+BOM） ===== */
+/* ===== CSV（UTF-8+BOM：iPhone Excel対策） ===== */
 document.getElementById("btn-export").onclick=()=>{
   if(!items.length){ alert("データなし"); return; }
   const header="id,datetime,store,amount,category\n";
@@ -334,7 +367,7 @@ document.getElementById("btn-export").onclick=()=>{
     ].join(","))
     .join("\n");
   const csv = header + rows;
-  const bom = new Uint8Array([0xEF,0xBB,0xBF]); // UTF-8 with BOM
+  const bom = new Uint8Array([0xEF,0xBB,0xBF]); // UTF-8 BOM
   const blob=new Blob([bom, csv],{type:"text/csv"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
